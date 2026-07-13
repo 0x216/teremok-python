@@ -57,3 +57,16 @@ async def test_strict_mode_raises_without_queued_result() -> None:
     bot = make_bot(strict=True)
     with pytest.raises(NoResultQueued, match="SendMessage"):
         await bot.send_message(chat_id=1, text="hi")
+
+
+async def test_queued_result_is_bound_to_bot_for_chaining() -> None:
+    bot = make_bot()
+    bot.session.add_result(
+        Response[SendMessage.__returning__](ok=True, result=make_message("hi"))
+    )
+    sent = await bot.send_message(chat_id=1, text="hi")
+    # chaining API calls off a mocked result must work like with a real session
+    from aiogram.methods import DeleteMessage
+
+    bot.session.add_result(Response[DeleteMessage.__returning__](ok=True, result=True))
+    assert await sent.delete() is True

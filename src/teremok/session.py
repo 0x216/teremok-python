@@ -56,21 +56,23 @@ class MockedSession(BaseSession):
         self.requests.append(method)
         if self._results:
             response = self._results.popleft()
-            if response.ok:
-                return cast(TelegramType, response.result)
-            self.check_response(
-                bot=bot,
-                method=method,
-                status_code=response.error_code or 400,
-                content=response.model_dump_json(),
+        else:
+            if self.strict:
+                raise NoResultQueued(
+                    f"No result queued for {type(method).__name__} (strict mode); "
+                    f"queue one with add_result(...)"
+                )
+            result = self.auto.respond(bot, method, files=self.files)
+            response = Response[method.__returning__](  # type: ignore[name-defined]
+                ok=True, result=result
             )
-            raise RuntimeError("check_response must raise for not-ok responses")
-        if self.strict:
-            raise NoResultQueued(
-                f"No result queued for {type(method).__name__} (strict mode); "
-                f"queue one with bot.add_result(...)"
-            )
-        return cast(TelegramType, self.auto.respond(bot, method, files=self.files))
+        checked = self.check_response(
+            bot=bot,
+            method=method,
+            status_code=response.error_code or (200 if response.ok else 400),
+            content=response.model_dump_json(),
+        )
+        return cast(TelegramType, checked.result)
 
     async def stream_content(
         self,
