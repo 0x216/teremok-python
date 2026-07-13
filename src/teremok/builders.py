@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from itertools import count
 from typing import Any
 
-from aiogram.types import CallbackQuery, Chat, Message, Update, User
+from aiogram.types import CallbackQuery, Chat, Document, Message, PhotoSize, Update, User, Voice
 
 DEFAULT_USER_ID = 12345
 
@@ -78,3 +78,84 @@ def MockCallbackQuery(
 
 def MockUpdate(**kwargs: Any) -> Update:
     return Update(update_id=next_update_id(), **kwargs)
+
+
+def MockMessagePhoto(
+    file_id: str = "photo_file_1",
+    caption: str | None = None,
+    user: User | None = None,
+    chat: Chat | None = None,
+    **kwargs: Any,
+) -> Message:
+    user = user or MockUser()
+    chat = chat or MockChat(chat_id=user.id)
+    photo = [
+        PhotoSize(
+            file_id=file_id,
+            file_unique_id=f"u_{file_id}",
+            width=1280,
+            height=960,
+            file_size=1024,
+        )
+    ]
+    return Message(
+        message_id=next(_message_ids),
+        date=_now(),
+        chat=chat,
+        from_user=user,
+        photo=photo,
+        caption=caption,
+        **kwargs,
+    )
+
+
+def MockMessageDocument(
+    file_id: str = "doc_file_1",
+    file_name: str = "file.pdf",
+    caption: str | None = None,
+    user: User | None = None,
+    chat: Chat | None = None,
+    **kwargs: Any,
+) -> Message:
+    user = user or MockUser()
+    chat = chat or MockChat(chat_id=user.id)
+    document = Document(
+        file_id=file_id,
+        file_unique_id=f"u_{file_id}",
+        file_name=file_name,
+        file_size=2048,
+    )
+    return Message(
+        message_id=next(_message_ids),
+        date=_now(),
+        chat=chat,
+        from_user=user,
+        document=document,
+        caption=caption,
+        **kwargs,
+    )
+
+
+def MockMessageVoice(
+    file_id: str = "voice_file_1",
+    duration: int = 3,
+    user: User | None = None,
+    chat: Chat | None = None,
+    **kwargs: Any,
+) -> Message:
+    user = user or MockUser()
+    chat = chat or MockChat(chat_id=user.id)
+    voice = Voice(
+        file_id=file_id,
+        file_unique_id=f"u_{file_id}",
+        duration=duration,
+        file_size=4096,
+    )
+    return Message(
+        message_id=next(_message_ids),
+        date=_now(),
+        chat=chat,
+        from_user=user,
+        voice=voice,
+        **kwargs,
+    )

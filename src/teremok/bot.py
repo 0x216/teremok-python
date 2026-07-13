@@ -87,6 +87,10 @@ class MockBot(Bot):
     def requests(self) -> Requests:
         return Requests(self.mock_session.requests)
 
+    def add_file(self, file_id: str, data: bytes, file_path: str | None = None) -> None:
+        """Register file content so handlers can bot.get_file()/bot.download() it."""
+        self.mock_session.files[file_id] = (file_path or f"files/{file_id}.dat", data)
+
     async def dispatch(
         self, obj: Update | Message | CallbackQuery, **kwargs: Any
     ) -> DispatchResult:
