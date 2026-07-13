@@ -9,20 +9,11 @@ from aiogram.client.session.base import BaseSession
 from aiogram.methods import TelegramMethod
 from aiogram.methods.base import Response, TelegramType
 
+from .responses import AutoResponder
+
 
 class NoResultQueued(AssertionError):
     """Raised in strict mode when an API call has no queued result."""
-
-
-class _RaisingAutoResponder:
-    """Placeholder until the real AutoResponder lands; always refuses."""
-
-    def respond(
-        self, bot: Bot, method: TelegramMethod[Any], files: dict[str, tuple[str, bytes]]
-    ) -> Any:
-        raise NoResultQueued(
-            f"No result queued for {type(method).__name__} and no auto-responder available"
-        )
 
 
 class MockedSession(BaseSession):
@@ -39,7 +30,7 @@ class MockedSession(BaseSession):
         self.requests: list[TelegramMethod[Any]] = []
         self.files: dict[str, tuple[str, bytes]] = {}
         self._results: deque[Response[Any]] = deque()
-        self.auto: Any = _RaisingAutoResponder()
+        self.auto: AutoResponder = AutoResponder()
 
     def add_result(self, response: Response[Any]) -> None:
         self._results.append(response)
