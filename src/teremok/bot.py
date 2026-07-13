@@ -22,7 +22,13 @@ class Requests:
 
     def __getattr__(self, name: str) -> list[TelegramMethod[Any]]:
         camel = "".join(part.capitalize() for part in name.split("_"))
-        if not hasattr(_methods_module, camel):
+        method_cls = getattr(_methods_module, camel, None)
+        if (
+            method_cls is None
+            or not isinstance(method_cls, type)
+            or not issubclass(method_cls, TelegramMethod)
+            or method_cls is TelegramMethod
+        ):
             raise AttributeError(
                 f"Unknown Telegram method {name!r} (no aiogram.methods.{camel})"
             )

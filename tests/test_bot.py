@@ -97,3 +97,10 @@ def test_unknown_method_name_raises_attribute_error() -> None:
     bot = MockBot(Router())
     with pytest.raises(AttributeError, match="snd_message"):
         _ = bot.requests.snd_message
+
+
+def test_non_method_reexports_raise_attribute_error() -> None:
+    bot = MockBot(Router())
+    for name in ("request", "response", "telegram_method"):
+        with pytest.raises(AttributeError, match=name):
+            getattr(bot.requests, name)
