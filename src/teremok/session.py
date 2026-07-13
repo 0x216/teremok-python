@@ -29,11 +29,11 @@ class MockedSession(BaseSession):
         self.strict = strict
         self.requests: list[TelegramMethod[Any]] = []
         self.files: dict[str, tuple[str, bytes]] = {}
-        self._results: deque[Response[Any]] = deque()
+        self._results: dict[type[TelegramMethod[Any]], deque[Response[Any]]] = {}
         self.auto: AutoResponder = AutoResponder()
 
-    def add_result(self, response: Response[Any]) -> None:
-        self._results.append(response)
+    def add_result(self, method: type[TelegramMethod[Any]], response: Response[Any]) -> None:
+        self._results.setdefault(method, deque()).append(response)
 
     async def close(self) -> None:
         pass
@@ -45,13 +45,16 @@ class MockedSession(BaseSession):
         timeout: int | None = None,
     ) -> TelegramType:
         self.requests.append(method)
-        if self._results:
-            response = self._results.popleft()
+        queue = self._results.get(type(method))
+        if queue:
+            response = queue.popleft()
+            if not queue:
+                del self._results[type(method)]
         else:
             if self.strict:
                 raise NoResultQueued(
                     f"No result queued for {type(method).__name__} (strict mode); "
-                    f"queue one with add_result(...)"
+                    f"queue one with add_result({type(method).__name__}, ...)"
                 )
             result = self.auto.respond(bot, method, files=self.files)
             response = Response[method.__returning__](  # type: ignore[name-defined]

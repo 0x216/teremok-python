@@ -75,6 +75,10 @@ bot.add_result(SendMessage, ok=False, error_code=400,
 # strict mode: MockBot(router, strict=True) fails on any un-queued call
 ```
 
+Results are keyed by method type: queuing a `SendMessage` result never answers an
+`AnswerCallbackQuery` (or any other method) call that happens to run first - every
+other call keeps auto-responding.
+
 ## What's covered
 
 Every Bot API method is **captured** (interception happens below all methods, at

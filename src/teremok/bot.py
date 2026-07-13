@@ -117,7 +117,7 @@ class MockBot(Bot):
         response = Response[method.__returning__](  # type: ignore[name-defined]
             ok=ok, result=result, error_code=error_code, description=description
         )
-        self.mock_session.add_result(response)
+        self.mock_session.add_result(method, response)
 
     def fsm(self, user_id: int = DEFAULT_USER_ID, chat_id: int | None = None) -> FSMContext:
         """FSMContext for the given user/chat, keyed exactly like aiogram does.

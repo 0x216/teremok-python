@@ -2,7 +2,7 @@ import pytest
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
-from aiogram.methods import SendMessage
+from aiogram.methods import AnswerCallbackQuery, SendMessage
 from aiogram.types import CallbackQuery, Message
 
 from teremok import MockBot, MockCallbackQuery, MockMessageText, MockUpdate
@@ -91,6 +91,62 @@ async def test_add_result_queues_api_error() -> None:
     )
     with pytest.raises(TelegramBadRequest, match="chat not found"):
         await bot.dispatch(MockMessageText("/start"))
+
+
+async def test_add_result_targets_specific_method_not_call_order() -> None:
+    """Reviewer's probe: on_confirm calls callback.answer() (AnswerCallbackQuery)
+    BEFORE callback.message.answer() (SendMessage). A result queued for
+    SendMessage must raise from the SendMessage call, not misroute to the
+    earlier AnswerCallbackQuery call - queues are keyed per method type."""
+    reached_send_message = False
+    router = Router()
+
+    @router.callback_query(F.data == "confirm")
+    async def on_confirm(callback: CallbackQuery) -> None:
+        await callback.answer("ack")  # AnswerCallbackQuery - must auto-succeed
+        nonlocal reached_send_message
+        reached_send_message = True
+        assert isinstance(callback.message, Message)
+        await callback.message.answer("reply")  # SendMessage - must raise
+
+    bot = MockBot(router)
+    bot.add_result(
+        SendMessage, ok=False, error_code=400, description="Bad Request: chat not found"
+    )
+    with pytest.raises(TelegramBadRequest, match="chat not found"):
+        await bot.dispatch(MockCallbackQuery(data="confirm"))
+    # The handler must have gotten PAST callback.answer() before raising -
+    # if the queued SendMessage error had misrouted to AnswerCallbackQuery
+    # (the old global-FIFO bug), the exception would fire before this flag
+    # is ever set.
+    assert reached_send_message, "exception fired from AnswerCallbackQuery, not SendMessage"
+    answered = bot.requests.answer_callback_query
+    assert len(answered) == 1
+    assert all(isinstance(m, AnswerCallbackQuery) for m in answered)
+
+
+async def test_add_result_ok_response_keyed_to_its_own_method() -> None:
+    """Ok-result mirror of the probe above: queuing a valid SendMessage result
+    must not misroute into the earlier AnswerCallbackQuery call (which returns
+    bool, not Message) - that would raise ClientDecodeError instead of the
+    earlier call auto-answering and the later call returning the queued
+    result."""
+    returned: Message | None = None
+    router = Router()
+
+    @router.callback_query(F.data == "confirm")
+    async def on_confirm(callback: CallbackQuery) -> None:
+        await callback.answer("ack")
+        nonlocal returned
+        assert isinstance(callback.message, Message)
+        returned = await callback.message.answer("reply")
+
+    bot = MockBot(router)
+    bot.add_result(SendMessage, MockMessageText("custom reply"))
+    result = await bot.dispatch(MockCallbackQuery(data="confirm"))
+    assert result.handled
+    assert bot.requests.answer_callback_query[0].text == "ack"
+    assert returned is not None and returned.text == "custom reply"
 
 
 def test_unknown_method_name_raises_attribute_error() -> None:
