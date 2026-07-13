@@ -73,8 +73,18 @@ class MockedSession(BaseSession):
         chunk_size: int = 65536,
         raise_for_status: bool = True,
     ) -> AsyncGenerator[bytes, None]:
-        for file_path, data in self.files.values():
-            if url.endswith(file_path):
-                yield data
-                return
+        # Telegram file URLs look like {base}/file/bot{token}/{file_path}
+        # (TelegramAPIServer.file_url); extract the exact file_path rather
+        # than suffix-matching, which confuses paths like "shared/name.jpg"
+        # and "other/shared/name.jpg".
+        marker = "/file/bot"
+        requested_path = None
+        if marker in url:
+            tail = url.split(marker, 1)[1]
+            _, _, requested_path = tail.partition("/")
+        if requested_path:
+            for registered_path, data in self.files.values():
+                if registered_path == requested_path:
+                    yield data
+                    return
         yield b""

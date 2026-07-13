@@ -54,6 +54,24 @@ def test_document_and_voice_builders() -> None:
     assert voice.voice is not None and voice.voice.duration == 7
 
 
+async def test_multiple_files_with_suffix_overlapping_paths() -> None:
+    router = Router()
+
+    @router.message(F.photo)
+    async def handle(message: Message, bot: Bot) -> None:
+        content = await bot.download(message.photo[-1].file_id)
+        assert content is not None
+        await message.answer(content.read().decode())
+
+    bot = MockBot(router)
+    bot.add_file("a", b"AAAA", file_path="shared/name.jpg")
+    bot.add_file("b", b"BBBB", file_path="other/shared/name.jpg")
+    await bot.dispatch(MockMessagePhoto(file_id="a"))
+    await bot.dispatch(MockMessagePhoto(file_id="b"))
+    texts = [m.text for m in bot.requests.send_message]
+    assert texts == ["AAAA", "BBBB"]
+
+
 async def test_media_group_auto_response_returns_message_per_item() -> None:
     from aiogram.types import InputMediaPhoto
 
