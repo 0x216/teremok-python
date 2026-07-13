@@ -29,6 +29,7 @@ this to your `pyproject.toml` (or the equivalent in `pytest.ini`):
 ```toml
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 ```
 
 The quickstart below depends on this setting.

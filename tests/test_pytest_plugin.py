@@ -21,5 +21,7 @@ def test_mock_bot_fixture_is_auto_registered(pytester) -> None:
             assert bot.requests.send_message[0].text == "hi"
         """
     )
-    result = pytester.runpytest("-o", "asyncio_mode=auto")
+    result = pytester.runpytest(
+        "-o", "asyncio_mode=auto", "-o", "asyncio_default_fixture_loop_scope=function"
+    )
     result.assert_outcomes(passed=1)
