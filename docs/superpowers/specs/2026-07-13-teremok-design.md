@@ -115,7 +115,7 @@ Every discovered edge case ("косяк") gets: a regression test + an entry in 
 ### Test/CI bar
 
 - pytest + pytest-asyncio, coverage gate ≥ 90% on `src/teremok/` (pytest-cov), badge in README.
-- CI matrix: Python 3.9–3.13 × aiogram (oldest supported 3.4 → latest release, plus `dev-3.x` as allowed-failure early warning).
+- CI matrix: Python 3.10–3.13 × aiogram (oldest supported 3.4 → latest release, plus `dev-3.x` as allowed-failure early warning).
 - Dogfood examples under `examples/` (echo bot, FSM form, photo bot) that run as tests and double as documentation.
 - ruff + mypy (strict on `src/`).
 
