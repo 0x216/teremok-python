@@ -6,11 +6,13 @@ from typing import Any
 import aiogram.methods as _methods_module
 from aiogram import Bot, Dispatcher, Router
 from aiogram.dispatcher.event.bases import UNHANDLED
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.base import StorageKey
 from aiogram.methods import TelegramMethod
 from aiogram.methods.base import Response
 from aiogram.types import CallbackQuery, Message, Update, User
 
-from .builders import next_update_id
+from .builders import DEFAULT_USER_ID, next_update_id
 from .session import MockedSession
 
 
@@ -112,3 +114,38 @@ class MockBot(Bot):
             ok=ok, result=result, error_code=error_code, description=description
         )
         self.mock_session.add_result(response)
+
+    def fsm(self, user_id: int = DEFAULT_USER_ID, chat_id: int | None = None) -> FSMContext:
+        """FSMContext for the given user/chat, keyed exactly like aiogram does.
+
+        The key includes this bot's id - a mismatch there makes state helpers
+        silently target a different bucket than dispatch (see docs/quirks.md).
+        """
+        resolved_chat = chat_id if chat_id is not None else user_id
+        return FSMContext(
+            storage=self.dp.storage,
+            key=StorageKey(bot_id=self.id, chat_id=resolved_chat, user_id=user_id),
+        )
+
+    async def set_state(
+        self, state: Any, user_id: int = DEFAULT_USER_ID, chat_id: int | None = None
+    ) -> None:
+        await self.fsm(user_id, chat_id).set_state(state)
+
+    async def get_state(
+        self, user_id: int = DEFAULT_USER_ID, chat_id: int | None = None
+    ) -> str | None:
+        return await self.fsm(user_id, chat_id).get_state()
+
+    async def set_data(
+        self,
+        data: dict[str, Any],
+        user_id: int = DEFAULT_USER_ID,
+        chat_id: int | None = None,
+    ) -> None:
+        await self.fsm(user_id, chat_id).set_data(data)
+
+    async def get_data(
+        self, user_id: int = DEFAULT_USER_ID, chat_id: int | None = None
+    ) -> dict[str, Any]:
+        return await self.fsm(user_id, chat_id).get_data()
