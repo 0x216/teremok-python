@@ -16,6 +16,23 @@ just like updates entering your bot.
 pip install teremok
 ```
 
+## Test setup
+
+```
+pip install teremok pytest-asyncio
+```
+
+teremok's tests (and the `mock_bot` fixture) are `async def`. Without
+`pytest-asyncio` configured, async tests are silently skipped or error - add
+this to your `pyproject.toml` (or the equivalent in `pytest.ini`):
+
+```toml
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+```
+
+The quickstart below depends on this setting.
+
 ## Quickstart
 
 ```python
@@ -85,6 +102,10 @@ Every Bot API method is **captured** (interception happens below all methods, at
 aiogram's session seam). Auto-response fidelity per method is tracked honestly in
 [docs/coverage.md](docs/coverage.md); known edge cases live in
 [docs/quirks.md](docs/quirks.md). Runnable examples: [examples/](examples/).
+
+CI's freshness gate regenerates that table against the latest aiogram release on
+every run, so a new aiogram release can turn CI red until someone regenerates and
+commits the table - that's expected behavior, not a teremok bug.
 
 ## Releasing (maintainers)
 

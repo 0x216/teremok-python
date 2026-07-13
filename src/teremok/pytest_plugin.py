@@ -15,7 +15,9 @@ MockBotFactory = Callable[..., MockBot]
 
 @pytest.fixture
 def mock_bot() -> MockBotFactory:
-    """Factory fixture: `bot = mock_bot(router_or_dispatcher, strict=...)`."""
+    """Factory fixture: `bot = mock_bot(router1, router2)` or
+    `bot = mock_bot(dispatcher, strict=True)` - pass any number of Routers,
+    or a single Dispatcher, plus MockBot's keyword-only options."""
 
     def factory(*targets: Dispatcher | Router, **kwargs: Any) -> MockBot:
         return MockBot(*targets, **kwargs)
