@@ -41,6 +41,11 @@ def test_mock_callback_query() -> None:
     assert cb.data == "confirm"
     assert isinstance(cb.message, Message)
     assert cb.from_user.id == DEFAULT_USER_ID
+    # default message contract: authored by the bot, in the caller's chat
+    assert cb.message.from_user is not None and cb.message.from_user.is_bot
+    assert cb.message.from_user.id == 42
+    assert cb.message.chat.id == cb.from_user.id
+    assert cb.chat_instance == "test_chat_instance"
 
 
 def test_mock_update_escape_hatch() -> None:
