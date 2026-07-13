@@ -20,7 +20,7 @@ class MockedSession(BaseSession):
     """In-process replacement for aiogram's network session.
 
     Captures every outgoing API call as a typed TelegramMethod object and
-    answers it from the queued-results FIFO, falling back to the
+    answers it from that method's queued-results FIFO, falling back to the
     auto-responder (unless strict=True).
     """
 

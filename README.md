@@ -23,7 +23,7 @@ pip install teremok pytest-asyncio
 ```
 
 teremok's tests (and the `mock_bot` fixture) are `async def`. Without
-`pytest-asyncio` configured, async tests are silently skipped or error - add
+`pytest-asyncio` configured, async tests fail to run - add
 this to your `pyproject.toml` (or the equivalent in `pytest.ini`):
 
 ```toml
