@@ -39,3 +39,17 @@ def test_render_covers_all_aiogram_methods() -> None:
     assert len(method_classes) > 100  # sanity: aiogram ships 100+ methods
     for cls in method_classes:
         assert f"| `{cls.__name__}` |" in text
+
+
+def test_render_covers_every_update_type() -> None:
+    from aiogram.types import Update
+
+    gen = load_script()
+    text = gen.render()
+    assert "| `message` |" in text
+    assert "| `inline_query` |" in text
+    assert "| `edited_message` |" in text
+    update_fields = [name for name in Update.model_fields if name != "update_id"]
+    assert len(update_fields) > 15  # sanity: Telegram ships 15+ update types
+    for name in update_fields:
+        assert f"| `{name}` |" in text
