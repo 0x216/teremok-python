@@ -72,7 +72,7 @@ fidelity of the **auto-response** when you don't queue a result:
 | `CloseGeneralForumTopic` | `bool` | 🟡 Generic |
 | `ConvertGiftToStars` | `bool` | 🟡 Generic |
 | `CopyMessage` | `MessageId` | ✅ Curated |
-| `CopyMessages` | `list` | 📋 Planned |
+| `CopyMessages` | `list[MessageId]` | 📋 Planned |
 | `CreateChatInviteLink` | `ChatInviteLink` | 📋 Planned |
 | `CreateChatSubscriptionInviteLink` | `ChatInviteLink` | 📋 Planned |
 | `CreateForumTopic` | `ForumTopic` | 📋 Planned |
@@ -97,35 +97,35 @@ fidelity of the **auto-response** when you don't queue a result:
 | `EditChatSubscriptionInviteLink` | `ChatInviteLink` | 📋 Planned |
 | `EditForumTopic` | `bool` | 🟡 Generic |
 | `EditGeneralForumTopic` | `bool` | 🟡 Generic |
-| `EditMessageCaption` | `Union` | ✅ Curated |
+| `EditMessageCaption` | `Message \| bool` | ✅ Curated |
 | `EditMessageChecklist` | `Message` | 🟡 Generic |
-| `EditMessageLiveLocation` | `Union` | 🟡 Generic |
-| `EditMessageMedia` | `Union` | 🟡 Generic |
-| `EditMessageReplyMarkup` | `Union` | ✅ Curated |
-| `EditMessageText` | `Union` | ✅ Curated |
+| `EditMessageLiveLocation` | `Message \| bool` | 🟡 Generic |
+| `EditMessageMedia` | `Message \| bool` | 🟡 Generic |
+| `EditMessageReplyMarkup` | `Message \| bool` | ✅ Curated |
+| `EditMessageText` | `Message \| bool` | ✅ Curated |
 | `EditStory` | `Story` | 📋 Planned |
 | `EditUserStarSubscription` | `bool` | 🟡 Generic |
 | `ExportChatInviteLink` | `str` | 📋 Planned |
 | `ForwardMessage` | `Message` | ✅ Curated |
-| `ForwardMessages` | `list` | 📋 Planned |
+| `ForwardMessages` | `list[MessageId]` | 📋 Planned |
 | `GetAvailableGifts` | `Gifts` | 📋 Planned |
 | `GetBusinessAccountGifts` | `OwnedGifts` | 📋 Planned |
 | `GetBusinessAccountStarBalance` | `StarAmount` | 📋 Planned |
 | `GetBusinessConnection` | `BusinessConnection` | 📋 Planned |
 | `GetChat` | `ChatFullInfo` | 📋 Planned |
-| `GetChatAdministrators` | `list` | 📋 Planned |
+| `GetChatAdministrators` | `list[ChatMemberOwner \| ChatMemberAdministrator \| ChatMemberMember \| ChatMemberRestricted \| ChatMemberLeft \| ChatMemberBanned]` | 📋 Planned |
 | `GetChatGifts` | `OwnedGifts` | 📋 Planned |
-| `GetChatMember` | `Union` | 📋 Planned |
+| `GetChatMember` | `ChatMemberOwner \| ChatMemberAdministrator \| ChatMemberMember \| ChatMemberRestricted \| ChatMemberLeft \| ChatMemberBanned` | 📋 Planned |
 | `GetChatMemberCount` | `int` | 📋 Planned |
-| `GetChatMenuButton` | `Union` | 📋 Planned |
-| `GetCustomEmojiStickers` | `list` | 📋 Planned |
+| `GetChatMenuButton` | `MenuButtonDefault \| MenuButtonWebApp \| MenuButtonCommands` | 📋 Planned |
+| `GetCustomEmojiStickers` | `list[Sticker]` | 📋 Planned |
 | `GetFile` | `File` | ✅ Curated |
-| `GetForumTopicIconStickers` | `list` | 📋 Planned |
-| `GetGameHighScores` | `list` | 📋 Planned |
+| `GetForumTopicIconStickers` | `list[Sticker]` | 📋 Planned |
+| `GetGameHighScores` | `list[GameHighScore]` | 📋 Planned |
 | `GetManagedBotAccessSettings` | `BotAccessSettings` | 📋 Planned |
 | `GetManagedBotToken` | `str` | 📋 Planned |
 | `GetMe` | `User` | ✅ Curated |
-| `GetMyCommands` | `list` | 📋 Planned |
+| `GetMyCommands` | `list[BotCommand]` | 📋 Planned |
 | `GetMyDefaultAdministratorRights` | `ChatAdministratorRights` | 📋 Planned |
 | `GetMyDescription` | `BotDescription` | 📋 Planned |
 | `GetMyName` | `BotName` | 📋 Planned |
@@ -133,10 +133,10 @@ fidelity of the **auto-response** when you don't queue a result:
 | `GetMyStarBalance` | `StarAmount` | 📋 Planned |
 | `GetStarTransactions` | `StarTransactions` | 📋 Planned |
 | `GetStickerSet` | `StickerSet` | 📋 Planned |
-| `GetUpdates` | `list` | 📋 Planned |
+| `GetUpdates` | `list[Update]` | 📋 Planned |
 | `GetUserChatBoosts` | `UserChatBoosts` | 📋 Planned |
 | `GetUserGifts` | `OwnedGifts` | 📋 Planned |
-| `GetUserPersonalChatMessages` | `list` | 📋 Planned |
+| `GetUserPersonalChatMessages` | `list[Message]` | 📋 Planned |
 | `GetUserProfileAudios` | `UserProfileAudios` | 📋 Planned |
 | `GetUserProfilePhotos` | `UserProfilePhotos` | 📋 Planned |
 | `GetWebhookInfo` | `WebhookInfo` | 📋 Planned |
@@ -175,7 +175,7 @@ fidelity of the **auto-response** when you don't queue a result:
 | `SendInvoice` | `Message` | 🟡 Generic |
 | `SendLivePhoto` | `Message` | 🟡 Generic |
 | `SendLocation` | `Message` | 🟡 Generic |
-| `SendMediaGroup` | `list` | ✅ Curated |
+| `SendMediaGroup` | `list[Message]` | ✅ Curated |
 | `SendMessage` | `Message` | ✅ Curated |
 | `SendMessageDraft` | `bool` | 🟡 Generic |
 | `SendPaidMedia` | `Message` | 🟡 Generic |
@@ -202,7 +202,7 @@ fidelity of the **auto-response** when you don't queue a result:
 | `SetChatStickerSet` | `bool` | 🟡 Generic |
 | `SetChatTitle` | `bool` | 🟡 Generic |
 | `SetCustomEmojiStickerSetThumbnail` | `bool` | 🟡 Generic |
-| `SetGameScore` | `Union` | 🟡 Generic |
+| `SetGameScore` | `Message \| bool` | 🟡 Generic |
 | `SetManagedBotAccessSettings` | `bool` | 🟡 Generic |
 | `SetMessageReaction` | `bool` | 🟡 Generic |
 | `SetMyCommands` | `bool` | 🟡 Generic |
@@ -220,7 +220,7 @@ fidelity of the **auto-response** when you don't queue a result:
 | `SetStickerSetTitle` | `bool` | 🟡 Generic |
 | `SetUserEmojiStatus` | `bool` | 🟡 Generic |
 | `SetWebhook` | `bool` | 🟡 Generic |
-| `StopMessageLiveLocation` | `Union` | 🟡 Generic |
+| `StopMessageLiveLocation` | `Message \| bool` | 🟡 Generic |
 | `StopPoll` | `Poll` | 📋 Planned |
 | `TransferBusinessAccountStars` | `bool` | 🟡 Generic |
 | `TransferGift` | `bool` | 🟡 Generic |

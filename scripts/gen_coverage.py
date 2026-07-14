@@ -6,9 +6,11 @@ CI regenerates the table and fails if the committed copy is stale.
 
 from __future__ import annotations
 
+import types
+import typing
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import aiogram
 import aiogram.methods as methods_module
@@ -57,6 +59,15 @@ def iter_update_types() -> Iterator[str]:
 
 
 def _type_name(returning: Any) -> str:
+    # Render unions and generics explicitly: the fallback spellings differ
+    # between Python versions (3.14 unified typing.Union with types.UnionType),
+    # and the freshness gate needs byte-identical output everywhere.
+    origin = typing.get_origin(returning)
+    if origin in (Union, types.UnionType):
+        return " | ".join(_type_name(arg) for arg in typing.get_args(returning))
+    if origin is not None:
+        args = ", ".join(_type_name(arg) for arg in typing.get_args(returning))
+        return f"{getattr(origin, '__name__', origin)}[{args}]"
     return getattr(returning, "__name__", None) or str(returning)
 
 
@@ -105,7 +116,8 @@ def render_methods() -> list[str]:
     for cls in iter_methods():
         returning = getattr(cls, "__returning__", None)
         status = STATUS.get(classify(cls), "UNKNOWN")
-        lines.append(f"| `{cls.__name__}` | `{_type_name(returning)}` | {status} |")
+        type_name = _type_name(returning).replace("|", "\\|")
+        lines.append(f"| `{cls.__name__}` | `{type_name}` | {status} |")
     return lines
 
 
