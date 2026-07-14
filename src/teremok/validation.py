@@ -121,8 +121,120 @@ def validate_html(text: str) -> None:
         )
 
 
-def validate_markdown(text: str, version: int) -> None:  # replaced in the Markdown task
-    return
+_MD2_RESERVED = frozenset("_*[]()~`>#+-=|{}.!")
+_MD1_DELIMS = ("```", "`", "*", "_")
+
+
+def validate_markdown(text: str, version: int) -> None:
+    if version == 1:
+        _validate_markdown_legacy(text)
+    else:
+        _validate_markdown_v2(text)
+
+
+def _validate_markdown_v2(text: str) -> None:
+    stack: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == "\\":
+            i += 2
+            continue
+        in_code = bool(stack) and stack[-1] in ("`", "```")
+        if ch == "`":
+            seq = "```" if text.startswith("```", i) else "`"
+            if in_code:
+                if stack[-1] == seq:
+                    stack.pop()
+                    i += len(seq)
+                    continue
+                i += 1
+                continue
+            stack.append(seq)
+            i += len(seq)
+            continue
+        if in_code:
+            i += 1
+            continue
+        if text.startswith("||", i):
+            if stack and stack[-1] == "||":
+                stack.pop()
+            else:
+                stack.append("||")
+            i += 2
+            continue
+        if ch == "_":
+            seq = "__" if text.startswith("__", i) else "_"
+            if stack and stack[-1] == seq:
+                stack.pop()
+            else:
+                stack.append(seq)
+            i += len(seq)
+            continue
+        if ch in "*~":
+            if stack and stack[-1] == ch:
+                stack.pop()
+            else:
+                stack.append(ch)
+            i += 1
+            continue
+        if ch == "[":
+            stack.append("[")
+            i += 1
+            continue
+        if ch == "]" and stack and stack[-1] == "[":
+            stack.pop()
+            if text.startswith("(", i + 1):
+                end = text.find(")", i + 2)
+                if end == -1:
+                    raise _cant_parse("Can't find end of a URL")
+                i = end + 1
+                continue
+            i += 1
+            continue
+        if ch == ">" and (i == 0 or text[i - 1] == "\n"):
+            i += 1
+            continue
+        if ch == "|":
+            # single '|' (the '||' case was handled above)
+            raise ApiRuleViolation(
+                "Bad Request: can't parse entities: Character '|' is reserved "
+                "and must be escaped with the preceding '\\'"
+            )
+        if ch in _MD2_RESERVED:
+            raise ApiRuleViolation(
+                f"Bad Request: can't parse entities: Character '{ch}' is "
+                "reserved and must be escaped with the preceding '\\'"
+            )
+        i += 1
+    if stack:
+        raise _cant_parse(f"Can't find end of {stack[-1]} entity")
+
+
+def _validate_markdown_legacy(text: str) -> None:
+    stack: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        in_code = bool(stack) and stack[-1] in ("`", "```")
+        ch = text[i]
+        if ch == "`":
+            seq = "```" if text.startswith("```", i) else "`"
+            if stack and stack[-1] == seq:
+                stack.pop()
+            elif not in_code:
+                stack.append(seq)
+            i += len(seq)
+            continue
+        if not in_code and ch in "*_":
+            if stack and stack[-1] == ch:
+                stack.pop()
+            else:
+                stack.append(ch)
+            i += 1
+            continue
+        i += 1
+    if stack:
+        raise _cant_parse(f"Can't find end of {stack[-1]} entity")
 
 
 def _check_parse_mode(text: str, parse_mode: str | None) -> None:
