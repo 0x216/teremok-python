@@ -75,7 +75,8 @@ def language_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     text="🇷🇺 Русский", callback_data=LangCb(code="ru").pack()
                 ),
-            ]
+            ],
+            [cancel_button()],
         ]
     )
 
@@ -195,7 +196,10 @@ async def toppings_done(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(OrderStates.entering_address)
     await callback.answer()
     assert isinstance(callback.message, Message)
-    await callback.message.edit_text(_("Send me your delivery address:"))
+    await callback.message.edit_text(
+        _("Send me your delivery address:"),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_button()]]),
+    )
 
 
 async def enter_address(message: Message, state: FSMContext) -> None:
