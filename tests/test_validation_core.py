@@ -86,3 +86,11 @@ async def test_offending_method_still_captured() -> None:
     with pytest.raises(TelegramBadRequest):
         await bot.send_message(chat_id=1, text="")
     assert len(bot.requests.send_message) == 1
+
+
+async def test_default_parse_mode_is_validated() -> None:
+    from aiogram.client.default import DefaultBotProperties
+
+    bot = MockBot(Router(), default=DefaultBotProperties(parse_mode="HTML"))
+    with pytest.raises(TelegramBadRequest, match="can't parse entities"):
+        await bot.send_message(chat_id=1, text="<b>broken")

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "teremok"
-version = "0.1.0"
+version = "0.2.0"
 description = "Black-box testing for aiogram 3.x Telegram bots - no network, no token"
 readme = "README.md"
 license = { text = "MIT" }

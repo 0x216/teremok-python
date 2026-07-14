@@ -97,6 +97,18 @@ Results are keyed by method type: queuing a `SendMessage` result never answers a
 `AnswerCallbackQuery` (or any other method) call that happens to run first - every
 other call keeps auto-responding.
 
+## Strict API rules (v0.2.0)
+
+Every outgoing call is checked against documented Bot API rules before it
+gets a response: text/caption length limits, HTML/MarkdownV2/legacy-Markdown
+well-formedness, entity offset bounds, and inline keyboard button shape
+(exactly one action field, `callback_data` ≤64 bytes). A violation raises a
+genuine `TelegramBadRequest` - same description text, same `check_response`
+route as a real rejection, nothing new to catch. Escape hatch for tests that
+intentionally send malformed payloads: `MockBot(router, validate=False)`.
+Full rule-by-rule reference, including what's deliberately not enforced, in
+[docs/validation.md](docs/validation.md).
+
 ## What's covered
 
 Every Bot API method is **captured** (interception happens below all methods, at
