@@ -88,3 +88,32 @@ async def test_legacy_escaped_delimiters_pass() -> None:
         chat_id=1, text="just an escaped star: \\* and underscore \\_",
         parse_mode="Markdown",
     )
+
+
+async def test_expandable_blockquote_from_docs_passes() -> None:
+    bot = make_bot()
+    await send_v2(
+        bot,
+        "**>The expandable block quotation started right after the previous block quotation\n"
+        ">It is separated from the previous block quotation by an empty bold entity\n"
+        ">Expandable block quotation continued\n"
+        ">Hidden by default part of the expandable block quotation started\n"
+        ">Expandable block quotation continued\n"
+        ">The last line of the expandable block quotation with the expandability mark||",
+    )
+
+
+async def test_regular_blockquote_still_passes() -> None:
+    bot = make_bot()
+    await send_v2(bot, ">Block quotation started\n>Block quotation continued")
+
+
+async def test_escaped_parens_in_link_url_pass() -> None:
+    bot = make_bot()
+    await send_v2(bot, "[Bracket](https://en.wikipedia.org/wiki/Bracket_\\(disambiguation\\))")
+
+
+async def test_unclosed_spoiler_on_plain_line_still_rejected() -> None:
+    bot = make_bot()
+    with pytest.raises(TelegramBadRequest, match="can't parse entities"):
+        await send_v2(bot, "plain line ||unclosed")

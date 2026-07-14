@@ -47,6 +47,21 @@ the wrong scale entirely. Every length/offset/bounds check in
 is `callback_data`, whose documented limit is byte-based (UTF-8), matching
 the docs' own "1-64 bytes" wording.
 
+## Known divergence: length counted on the raw string
+
+The Bot API counts `text`/`caption` limits "after entities parsing" -
+markup characters (`*`, `_`, `<b>`, backslash escapes, ...) are stripped
+before counting. teremok currently counts the **raw** string including
+markup, so a heavily-marked-up text whose parsed form fits the limit may be
+false-rejected near the boundary. Precise parsed-length counting is planned.
+
+## Validation precedence vs queued results
+
+Validation runs **before** queued results are consulted. A call that fails
+validation raises immediately and does **not** consume a queued result: the
+queued result stays in place and will answer the next call of that method
+type.
+
 ## Deliberately not enforced
 
 - **Bare `>` in HTML.** The docs say to escape `>` as `&gt;`; the real Bot

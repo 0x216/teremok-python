@@ -106,6 +106,8 @@ well-formedness, entity offset bounds, and inline keyboard button shape
 genuine `TelegramBadRequest` - same description text, same `check_response`
 route as a real rejection, nothing new to catch. Escape hatch for tests that
 intentionally send malformed payloads: `MockBot(router, validate=False)`.
+Validation runs before queued results are consulted, so a call that fails
+validation never consumes a queued result.
 Full rule-by-rule reference, including what's deliberately not enforced, in
 [docs/validation.md](docs/validation.md).
 

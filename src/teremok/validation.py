@@ -139,11 +139,16 @@ def validate_markdown(text: str, version: int) -> None:
 
 def _validate_markdown_v2(text: str) -> None:
     stack: list[str] = []
+    line_is_quote = False
     i, n = 0, len(text)
     while i < n:
         ch = text[i]
         if ch == "\\":
             i += 2
+            continue
+        if ch == "\n":
+            line_is_quote = False
+            i += 1
             continue
         in_code = bool(stack) and stack[-1] in ("`", "```")
         if ch == "`":
@@ -161,9 +166,16 @@ def _validate_markdown_v2(text: str) -> None:
         if in_code:
             i += 1
             continue
+        if text.startswith("**>", i) and (i == 0 or text[i - 1] == "\n"):
+            # first line of an expandable blockquote starts with **> at line start
+            line_is_quote = True
+            i += 3
+            continue
         if text.startswith("||", i):
             if stack and stack[-1] == "||":
                 stack.pop()
+            elif line_is_quote and (i + 2 == n or text[i + 2] == "\n"):
+                pass  # expandability mark at the end of a quote's last line
             else:
                 stack.append("||")
             i += 2
@@ -183,7 +195,7 @@ def _validate_markdown_v2(text: str) -> None:
                 stack.append(ch)
             i += 1
             continue
-        if ch == "!" and text.startswith("![", i):
+        if text.startswith("![", i):
             # custom emoji: ![emoji](tg://emoji?id=...)
             i += 1  # the '[' at the next position enters the existing link logic
             continue
@@ -194,14 +206,24 @@ def _validate_markdown_v2(text: str) -> None:
         if ch == "]" and stack and stack[-1] == "[":
             stack.pop()
             if text.startswith("(", i + 1):
-                end = text.find(")", i + 2)
-                if end == -1:
+                # inside the (...) of a link, ')' and '\' must be escaped;
+                # honor backslash escapes while scanning for the closing ')'
+                j = i + 2
+                while j < n:
+                    if text[j] == "\\":
+                        j += 2
+                    elif text[j] == ")":
+                        break
+                    else:
+                        j += 1
+                if j >= n:
                     raise _cant_parse("Can't find end of a URL")
-                i = end + 1
+                i = j + 1
                 continue
             i += 1
             continue
         if ch == ">" and (i == 0 or text[i - 1] == "\n"):
+            line_is_quote = True
             i += 1
             continue
         if ch == "|":
