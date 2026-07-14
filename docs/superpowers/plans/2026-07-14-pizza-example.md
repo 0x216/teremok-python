@@ -669,3 +669,7 @@ Expected: 63 passed (47 + 16), everything clean and gates green.
 git add tests/examples/test_pizza_order_bot.py docs/quirks.md
 git commit -m "test: full pizza-wizard suite - callbacks, toggles, FSM, i18n end-to-end"
 ```
+
+## Deviation log (updated during execution)
+
+- **Universal cancel** (Task 1 review, plan-mandated gap): the language screen gets a `[cancel_button()]` second row and the address prompt keeps an inline cancel markup (`edit_text(..., reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_button()]]))`). Task 2 adjustments: `test_order_shows_language_picker` must assert the language codes on `inline_keyboard[0]` (row 0) only, and add two tests — cancel from the language screen and cancel from the address step.
