@@ -7,6 +7,7 @@ TelegramBadRequest via the same check_response route as real error responses.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from aiogram import Bot
@@ -43,8 +44,81 @@ def _resolve_parse_mode(bot: Bot, value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def validate_html(text: str) -> None:  # replaced in the HTML task
-    return
+_TAG_TOKEN = re.compile(
+    r"<(/?)([a-zA-Z][a-zA-Z0-9-]*)"
+    r"((?:\s+[a-zA-Z-]+(?:=(?:\"[^\"]*\"|'[^']*'))?)*)"
+    r"\s*>"
+)
+_ATTR = re.compile(r"([a-zA-Z-]+)(?:=(?:\"([^\"]*)\"|'([^']*)'))?")
+_CHAR_REF = re.compile(r"&(?:lt|gt|amp|quot|#[0-9]{1,7}|#x[0-9a-fA-F]{1,6});")
+
+# Bot API "HTML style": tag -> allowed attributes
+_HTML_ALLOWED: dict[str, frozenset[str]] = {
+    "b": frozenset(), "strong": frozenset(),
+    "i": frozenset(), "em": frozenset(),
+    "u": frozenset(), "ins": frozenset(),
+    "s": frozenset(), "strike": frozenset(), "del": frozenset(),
+    "span": frozenset({"class"}),
+    "tg-spoiler": frozenset(),
+    "a": frozenset({"href"}),
+    "code": frozenset({"class"}),
+    "pre": frozenset(),
+    "blockquote": frozenset({"expandable"}),
+    "tg-emoji": frozenset({"emoji-id"}),
+}
+
+
+def _cant_parse(detail: str) -> ApiRuleViolation:
+    return ApiRuleViolation(f"Bad Request: can't parse entities: {detail}")
+
+
+def validate_html(text: str) -> None:
+    stack: list[str] = []
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch == "<":
+            token = _TAG_TOKEN.match(text, i)
+            if not token:
+                snippet = text[i + 1 : i + 21].split(">", 1)[0] or "<"
+                raise _cant_parse(f'Unsupported start tag "{snippet}"')
+            closing, name, attrs_raw = token.group(1), token.group(2).lower(), token.group(3)
+            if name not in _HTML_ALLOWED:
+                raise _cant_parse(f'Unsupported start tag "{name}"')
+            if closing:
+                if not stack or stack[-1] != name:
+                    raise _cant_parse(f'Unmatched end tag "{name}"')
+                stack.pop()
+            else:
+                attrs = {
+                    m.group(1).lower(): m.group(2) if m.group(2) is not None else m.group(3)
+                    for m in _ATTR.finditer(attrs_raw)
+                    if m.group(1)
+                }
+                unknown = set(attrs) - _HTML_ALLOWED[name]
+                if unknown:
+                    raise _cant_parse(
+                        f'Unsupported attribute "{sorted(unknown)[0]}" in tag "{name}"'
+                    )
+                if name == "a" and "href" not in attrs:
+                    raise _cant_parse('Tag "a" must have attribute "href"')
+                if name == "span" and attrs.get("class") != "tg-spoiler":
+                    raise _cant_parse('Tag "span" must have class "tg-spoiler"')
+                if name == "tg-emoji" and not attrs.get("emoji-id"):
+                    raise _cant_parse('Tag "tg-emoji" must have attribute "emoji-id"')
+                stack.append(name)
+            i = token.end()
+        elif ch == "&":
+            ref = _CHAR_REF.match(text, i)
+            if not ref:
+                raise _cant_parse("Unexpected character '&' (escape it as &amp;)")
+            i = ref.end()
+        else:
+            i += 1
+    if stack:
+        raise _cant_parse(
+            f'Can\'t find end tag corresponding to start tag "{stack[-1]}"'
+        )
 
 
 def validate_markdown(text: str, version: int) -> None:  # replaced in the Markdown task
