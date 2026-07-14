@@ -1,0 +1,65 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: pizza-order-bot\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Choose your language:"
+msgstr "Выбери язык:"
+
+msgid "Choose your size:"
+msgstr "Выбери размер:"
+
+msgid "Pick your toppings:"
+msgstr "Выбери топпинги:"
+
+msgid "Done ➡️"
+msgstr "Готово ➡️"
+
+msgid "❌ Cancel"
+msgstr "❌ Отмена"
+
+msgid "Send me your delivery address:"
+msgstr "Пришли адрес доставки:"
+
+msgid "Address looks too short, try again:"
+msgstr "Адрес слишком короткий, попробуй ещё раз:"
+
+msgid ""
+"Your order:\n"
+"Size: {size}\n"
+"Toppings: {toppings}\n"
+"Address: {address}\n"
+"Total: ${total}"
+msgstr ""
+"Твой заказ:\n"
+"Размер: {size}\n"
+"Топпинги: {toppings}\n"
+"Адрес: {address}\n"
+"Итого: ${total}"
+
+msgid "Confirm ✅"
+msgstr "Подтвердить ✅"
+
+msgid "Order placed! Total: ${total}"
+msgstr "Заказ оформлен! Итого: ${total}"
+
+msgid "Order cancelled"
+msgstr "Заказ отменён"
+
+msgid "(none)"
+msgstr "(без топпингов)"
+
+msgid "Cheese"
+msgstr "Сыр"
+
+msgid "Mushrooms"
+msgstr "Грибы"
+
+msgid "Pepperoni"
+msgstr "Пепперони"
+
+msgid "Olives"
+msgstr "Оливки"
