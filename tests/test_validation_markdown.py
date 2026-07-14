@@ -69,3 +69,22 @@ async def test_legacy_markdown_unbalanced_rejected() -> None:
     bot = make_bot()
     with pytest.raises(TelegramBadRequest, match="can't parse entities"):
         await bot.send_message(chat_id=1, text="*oops", parse_mode="Markdown")
+
+
+async def test_custom_emoji_syntax_passes() -> None:
+    bot = make_bot()
+    await send_v2(bot, "![👍](tg://emoji?id=5368324170671202286)")
+
+
+async def test_unescaped_bang_still_rejected() -> None:
+    bot = make_bot()
+    with pytest.raises(TelegramBadRequest, match="reserved and must be escaped"):
+        await send_v2(bot, "wow!")
+
+
+async def test_legacy_escaped_delimiters_pass() -> None:
+    bot = make_bot()
+    await bot.send_message(
+        chat_id=1, text="just an escaped star: \\* and underscore \\_",
+        parse_mode="Markdown",
+    )

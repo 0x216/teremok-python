@@ -122,7 +122,12 @@ def validate_html(text: str) -> None:
 
 
 _MD2_RESERVED = frozenset("_*[]()~`>#+-=|{}.!")
-_MD1_DELIMS = ("```", "`", "*", "_")
+
+
+def _reserved_char(ch: str) -> ApiRuleViolation:
+    return _cant_parse(
+        f"Character '{ch}' is reserved and must be escaped with the preceding '\\'"
+    )
 
 
 def validate_markdown(text: str, version: int) -> None:
@@ -178,6 +183,10 @@ def _validate_markdown_v2(text: str) -> None:
                 stack.append(ch)
             i += 1
             continue
+        if ch == "!" and text.startswith("![", i):
+            # custom emoji: ![emoji](tg://emoji?id=...)
+            i += 1  # the '[' at the next position enters the existing link logic
+            continue
         if ch == "[":
             stack.append("[")
             i += 1
@@ -197,15 +206,9 @@ def _validate_markdown_v2(text: str) -> None:
             continue
         if ch == "|":
             # single '|' (the '||' case was handled above)
-            raise ApiRuleViolation(
-                "Bad Request: can't parse entities: Character '|' is reserved "
-                "and must be escaped with the preceding '\\'"
-            )
+            raise _reserved_char("|")
         if ch in _MD2_RESERVED:
-            raise ApiRuleViolation(
-                f"Bad Request: can't parse entities: Character '{ch}' is "
-                "reserved and must be escaped with the preceding '\\'"
-            )
+            raise _reserved_char(ch)
         i += 1
     if stack:
         raise _cant_parse(f"Can't find end of {stack[-1]} entity")
@@ -217,6 +220,12 @@ def _validate_markdown_legacy(text: str) -> None:
     while i < n:
         in_code = bool(stack) and stack[-1] in ("`", "```")
         ch = text[i]
+        if ch == "\\" and not in_code:
+            # legacy Markdown documents escaping _ * ` [ with a preceding '\';
+            # inside code spans '\' is literal, so the skip must not apply there
+            # (an unconditional skip would eat a closing '`' and false-reject).
+            i += 2
+            continue
         if ch == "`":
             seq = "```" if text.startswith("```", i) else "`"
             if stack and stack[-1] == seq:
