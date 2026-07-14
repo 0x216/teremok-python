@@ -275,8 +275,31 @@ def _check_body(bot: Bot, method: TelegramMethod[Any], text: str, entities: Any)
     _check_parse_mode(text, parse_mode)
 
 
+# InlineKeyboardButton docs: "Exactly one of the fields other than text,
+# icon_custom_emoji_id, and style must be used to specify the type of the button."
+_BUTTON_ACTION_FIELDS = (
+    "url", "callback_data", "web_app", "login_url",
+    "switch_inline_query", "switch_inline_query_current_chat",
+    "switch_inline_query_chosen_chat", "copy_text", "callback_game", "pay",
+)
+
+
 def _check_inline_keyboard(markup: InlineKeyboardMarkup) -> None:
-    return  # replaced in the keyboard task
+    for row in markup.inline_keyboard:
+        for button in row:
+            actions = [
+                field for field in _BUTTON_ACTION_FIELDS
+                if getattr(button, field, None) is not None
+            ]
+            if len(actions) != 1:
+                raise ApiRuleViolation(
+                    "Bad Request: can't parse inline keyboard button: exactly "
+                    "one of the optional fields must be used"
+                )
+            if button.callback_data is not None:
+                size = len(button.callback_data.encode("utf-8"))
+                if not 1 <= size <= 64:
+                    raise ApiRuleViolation("Bad Request: BUTTON_DATA_INVALID")
 
 
 def validate_method(bot: Bot, method: TelegramMethod[Any]) -> None:
