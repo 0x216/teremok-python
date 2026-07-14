@@ -55,6 +55,6 @@ Then open your bot in Telegram and send `/order` (pizza), `/start` (echo),
 
 Note on the pizza bot's translations: the Russian catalog is committed as a
 readable `.po` file; the binary `.mo` that gettext loads is compiled
-automatically at import time (needs Babel, which `pip install -e .[dev]`
-brings in). Without Babel the bot still works — it just falls back to the
-English strings.
+automatically at import time. The pizza bot requires Babel (aiogram's i18n
+middleware itself depends on it) — `pip install -e .[dev]` brings it in.
+The other three examples run with no extra dependencies.

@@ -40,9 +40,10 @@ MIN_ADDRESS_LEN = 5
 def compile_locales() -> None:
     """Compile the committed .po catalogs to the .mo files I18n loads.
 
-    .mo files are binary and git-ignored. Requires Babel (a dev-only
-    dependency); without it the bot still works, falling back to the
-    English msgids baked into the source.
+    .mo files are binary and git-ignored. Babel is required to run this
+    example at all (aiogram's i18n middleware depends on it - install via
+    `pip install -e .[dev]`); the guard below only keeps the import error
+    surfacing from aiogram's own clear message rather than from here.
     """
     try:
         from babel.messages.mofile import write_mo

@@ -104,6 +104,10 @@ aiogram's session seam). Auto-response fidelity per method is tracked honestly i
 [docs/coverage.md](docs/coverage.md); known edge cases live in
 [docs/quirks.md](docs/quirks.md).
 
+CI's freshness gate regenerates that table against the latest aiogram release on
+every run, so a new aiogram release can turn CI red until someone regenerates and
+commits the table - that's expected behavior, not a teremok bug.
+
 ## Examples
 
 Four runnable bots with full test suites — the tests are the best
@@ -112,10 +116,6 @@ documentation of how to use teremok. Start with the
 [pizza order wizard](examples/pizza_order_bot.py) (inline-keyboard toggles,
 FSM, gettext i18n) and its [18 tests](tests/examples/test_pizza_order_bot.py).
 Every example also runs live: `BOT_TOKEN=... python -m examples.pizza_order_bot`.
-
-CI's freshness gate regenerates that table against the latest aiogram release on
-every run, so a new aiogram release can turn CI red until someone regenerates and
-commits the table - that's expected behavior, not a teremok bug.
 
 ## Releasing (maintainers)
 
