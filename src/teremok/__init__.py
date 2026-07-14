@@ -14,8 +14,10 @@ from .builders import (
 )
 from .responses import AutoResponder, CannotAutoRespond, classify
 from .session import MockedSession, NoResultQueued
+from .validation import ApiRuleViolation
 
 __all__ = [
+    "ApiRuleViolation",
     "AutoResponder",
     "CannotAutoRespond",
     "DEFAULT_USER_ID",

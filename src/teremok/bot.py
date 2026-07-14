@@ -67,9 +67,10 @@ class MockBot(Bot):
         *targets: Dispatcher | Router,
         token: str = "42:TEST",
         strict: bool = False,
+        validate: bool = True,
         **bot_kwargs: Any,
     ) -> None:
-        session = MockedSession(strict=strict)
+        session = MockedSession(strict=strict, validate=validate)
         super().__init__(token, session=session, **bot_kwargs)
         self.mock_session: MockedSession = session
         self._me = User(id=self.id, is_bot=True, first_name="TestBot", username="test_bot")

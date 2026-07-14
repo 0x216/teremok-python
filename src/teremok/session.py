@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import deque
 from collections.abc import AsyncGenerator
 from typing import Any, cast
@@ -10,6 +11,7 @@ from aiogram.methods import TelegramMethod
 from aiogram.methods.base import Response, TelegramType
 
 from .responses import AutoResponder
+from .validation import ApiRuleViolation, validate_method
 
 
 class NoResultQueued(AssertionError):
@@ -24,9 +26,10 @@ class MockedSession(BaseSession):
     auto-responder (unless strict=True).
     """
 
-    def __init__(self, strict: bool = False) -> None:
+    def __init__(self, strict: bool = False, validate: bool = True) -> None:
         super().__init__()
         self.strict = strict
+        self.validate = validate
         self.requests: list[TelegramMethod[Any]] = []
         self.files: dict[str, tuple[str, bytes]] = {}
         self._results: dict[type[TelegramMethod[Any]], deque[Response[Any]]] = {}
@@ -45,6 +48,23 @@ class MockedSession(BaseSession):
         timeout: int | None = None,
     ) -> TelegramType:
         self.requests.append(method)
+        if self.validate:
+            try:
+                validate_method(bot, method)
+            except ApiRuleViolation as violation:
+                self.check_response(
+                    bot=bot,
+                    method=method,
+                    status_code=400,
+                    content=json.dumps(
+                        {
+                            "ok": False,
+                            "error_code": 400,
+                            "description": violation.description,
+                        }
+                    ),
+                )
+                raise RuntimeError("check_response must raise for error responses") from None
         queue = self._results.get(type(method))
         if queue:
             response = queue.popleft()
