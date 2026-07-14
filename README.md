@@ -102,7 +102,16 @@ other call keeps auto-responding.
 Every Bot API method is **captured** (interception happens below all methods, at
 aiogram's session seam). Auto-response fidelity per method is tracked honestly in
 [docs/coverage.md](docs/coverage.md); known edge cases live in
-[docs/quirks.md](docs/quirks.md). Runnable examples: [examples/](examples/).
+[docs/quirks.md](docs/quirks.md).
+
+## Examples
+
+Four runnable bots with full test suites — the tests are the best
+documentation of how to use teremok. Start with the
+[examples guide](examples/README.md); the showcase is the
+[pizza order wizard](examples/pizza_order_bot.py) (inline-keyboard toggles,
+FSM, gettext i18n) and its [18 tests](tests/examples/test_pizza_order_bot.py).
+Every example also runs live: `BOT_TOKEN=... python -m examples.pizza_order_bot`.
 
 CI's freshness gate regenerates that table against the latest aiogram release on
 every run, so a new aiogram release can turn CI red until someone regenerates and

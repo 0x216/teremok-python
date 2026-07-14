@@ -1,4 +1,8 @@
-"""Two-question FSM form - shows multi-step conversation testing."""
+"""Two-question FSM form - shows multi-step conversation testing.
+
+Tests: tests/examples/test_examples.py (test_fsm_form_bot_full_flow)
+Run live: BOT_TOKEN=<token> python -m examples.fsm_form_bot
+"""
 
 from aiogram import Router
 from aiogram.filters import Command
@@ -32,3 +36,18 @@ async def form_age(message: Message, state: FSMContext) -> None:
     data = await state.update_data(age=message.text)
     await state.clear()
     await message.answer(f"Nice to meet you, {data['name']} ({data['age']})!")
+
+
+if __name__ == "__main__":
+    import asyncio
+    import os
+
+    from aiogram import Bot, Dispatcher
+
+    async def main() -> None:
+        bot = Bot(os.environ["BOT_TOKEN"])
+        dp = Dispatcher()
+        dp.include_router(router)
+        await dp.start_polling(bot)
+
+    asyncio.run(main())

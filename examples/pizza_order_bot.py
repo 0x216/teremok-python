@@ -8,6 +8,9 @@ through teremok's dispatch.
 Note the `create_router()` factory: aiogram forbids attaching one Router
 to two dispatchers, so tests build a fresh router per MockBot
 (see docs/quirks.md #13).
+
+Tests: tests/examples/test_pizza_order_bot.py
+Run live: BOT_TOKEN=<token> python -m examples.pizza_order_bot
 """
 
 from pathlib import Path
@@ -32,6 +35,31 @@ SIZES = {"S": 8.0, "M": 10.0, "L": 12.0}
 TOPPINGS = ("Cheese", "Mushrooms", "Pepperoni", "Olives")
 TOPPING_PRICE = 1.5
 MIN_ADDRESS_LEN = 5
+
+
+def compile_locales() -> None:
+    """Compile the committed .po catalogs to the .mo files I18n loads.
+
+    .mo files are binary and git-ignored. Requires Babel (a dev-only
+    dependency); without it the bot still works, falling back to the
+    English msgids baked into the source.
+    """
+    try:
+        from babel.messages.mofile import write_mo
+        from babel.messages.pofile import read_po
+    except ImportError:
+        return
+    for po_path in LOCALES_DIR.glob("*/LC_MESSAGES/messages.po"):
+        mo_path = po_path.with_suffix(".mo")
+        if mo_path.exists() and mo_path.stat().st_mtime >= po_path.stat().st_mtime:
+            continue
+        with po_path.open("rb") as po_file:
+            catalog = read_po(po_file)
+        with mo_path.open("wb") as mo_file:
+            write_mo(mo_file, catalog)
+
+
+compile_locales()  # must happen before I18n() below reads the catalogs
 
 i18n = I18n(path=LOCALES_DIR, default_locale="en", domain="messages")
 i18n_middleware = FSMI18nMiddleware(i18n)
@@ -258,3 +286,18 @@ def create_router() -> Router:
     )
     router.callback_query.register(cancel_order, ActionCb.filter(F.action == "cancel"))
     return router
+
+
+if __name__ == "__main__":
+    import asyncio
+    import os
+
+    from aiogram import Bot, Dispatcher
+
+    async def main() -> None:
+        bot = Bot(os.environ["BOT_TOKEN"])
+        dp = Dispatcher()
+        dp.include_router(create_router())
+        await dp.start_polling(bot)
+
+    asyncio.run(main())
