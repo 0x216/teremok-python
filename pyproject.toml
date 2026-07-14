@@ -25,6 +25,11 @@ classifiers = [
 ]
 dependencies = ["aiogram>=3.4,<4"]
 
+[project.urls]
+Repository = "https://github.com/0x216/teremok-python"
+Issues = "https://github.com/0x216/teremok-python/issues"
+Coverage = "https://github.com/0x216/teremok-python/blob/main/docs/coverage.md"
+
 [project.optional-dependencies]
 dev = [
   "pytest>=8",

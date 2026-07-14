@@ -1,6 +1,6 @@
 # teremok
 
-[![PyPI](https://img.shields.io/pypi/v/teremok)](https://pypi.org/project/teremok/) ![Python](https://img.shields.io/pypi/pyversions/teremok)
+[![PyPI](https://img.shields.io/pypi/v/teremok)](https://pypi.org/project/teremok/) ![Python](https://img.shields.io/pypi/pyversions/teremok) [![CI](https://github.com/0x216/teremok-python/actions/workflows/ci.yml/badge.svg)](https://github.com/0x216/teremok-python/actions/workflows/ci.yml)
 
 Black-box testing for [aiogram 3.x](https://github.com/aiogram/aiogram) Telegram
 bots. No network, no token, no mock servers - each test runs in milliseconds.
@@ -112,6 +112,16 @@ commits the table - that's expected behavior, not a teremok bug.
 
 Tag `vX.Y.Z` and push - GitHub Actions builds and publishes via PyPI Trusted
 Publishing (configure once in PyPI project settings).
+
+## Credits
+
+The name and the whole idea are borrowed with love from
+[teremock](https://github.com/zerosixty/teremock) by
+[@zerosixty](https://github.com/zerosixty) — a Rust testing library for
+teloxide bots (MIT). teremok is its independent aiogram counterpart: no code
+is shared (different language, different framework), but the black-box testing
+philosophy — and the pun — are theirs. Related prior art:
+[teloxide_tests](https://docs.rs/teloxide_tests).
 
 ## License
 
