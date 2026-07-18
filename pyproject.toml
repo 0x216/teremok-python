@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "teremok"
-version = "0.2.0"
+version = "0.3.0"
 description = "Black-box testing for aiogram 3.x Telegram bots - no network, no token"
 readme = "README.md"
 license = { text = "MIT" }
@@ -31,14 +31,31 @@ Issues = "https://github.com/0x216/teremok-python/issues"
 Coverage = "https://github.com/0x216/teremok-python/blob/main/docs/coverage.md"
 
 [project.optional-dependencies]
+# Redis-backed FSM storage for tests (aiogram RedisStorage over an in-process
+# fakeredis) - JSON-serializes state/data like prod, so it surfaces bugs
+# MemoryStorage hides. See teremok.fake_redis_storage().
+redis = [
+  "fakeredis>=2.20",
+  "redis>=5",
+]
 dev = [
   "pytest>=8",
   "pytest-asyncio>=0.23",
   "pytest-cov>=5",
-  "coverage>=7",
+  # Upper bound pins out a coverage.py regression: 7.11.1 (the "core
+  # selection / breakpoint-frame" release) segfaults during interpreter
+  # shutdown GC on CPython 3.10/3.11 when the traced object graph includes
+  # this suite's aiogram + fakeredis objects (SIGSEGV / exit 139 *after*
+  # "130 passed"). Bisected clean: 7.11.0 good, 7.11.1+ bad; both the C and
+  # pure-python cores crash, so no COVERAGE_CORE setting avoids it. 3.12/3.13
+  # are unaffected. Coverage measurement is identical on 7.11.0, so the >=90%
+  # gate is untouched. Revisit (widen) once the upstream crash is fixed.
+  "coverage>=7,<7.11.1",
   "babel>=2.13",
   "ruff>=0.5",
   "mypy>=1.10",
+  "fakeredis>=2.20",
+  "redis>=5",
 ]
 
 [project.entry-points.pytest11]

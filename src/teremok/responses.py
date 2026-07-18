@@ -68,10 +68,16 @@ class AutoResponder:
             return Chat(id=chat_id, type="private")
         return Chat(id=0, type="channel", title=str(chat_id))
 
-    def make_message(self, bot: Bot, method: TelegramMethod[Any]) -> Message:
+    def make_message(
+        self, bot: Bot, method: TelegramMethod[Any], message_id: int | None = None
+    ) -> Message:
         chat_id = getattr(method, "chat_id", 12345)
+        # An edit keeps the original message_id (like Telegram): callers pass
+        # the method's message_id so a fresh id is NOT allocated for edits.
         data: dict[str, Any] = {
-            "message_id": self.next_message_id(chat_id),
+            "message_id": message_id
+            if message_id is not None
+            else self.next_message_id(chat_id),
             "date": datetime.now(timezone.utc),
             "chat": self.make_chat(chat_id),
             "from_user": self.bot_user(bot),
@@ -116,6 +122,15 @@ def _h_message(r: AutoResponder, bot: Bot, m: TelegramMethod[Any], files: FilesD
     return r.make_message(bot, m)
 
 
+def _h_edit(r: AutoResponder, bot: Bot, m: TelegramMethod[Any], files: FilesDict) -> Any:
+    # Editing a chat message returns the edited Message, keeping its id;
+    # editing an inline message (inline_message_id, no chat message) returns
+    # True - both are real Bot API behaviours for the edit-* family.
+    if getattr(m, "inline_message_id", None) is not None and getattr(m, "message_id", None) is None:
+        return True
+    return r.make_message(bot, m, message_id=getattr(m, "message_id", None))
+
+
 def _h_get_me(r: AutoResponder, bot: Bot, m: TelegramMethod[Any], files: FilesDict) -> Any:
     return r.bot_user(bot)
 
@@ -145,9 +160,9 @@ CURATED: dict[type, Handler] = {
     SendAudio: _h_message,
     SendAnimation: _h_message,
     ForwardMessage: _h_message,
-    EditMessageText: _h_message,
-    EditMessageCaption: _h_message,
-    EditMessageReplyMarkup: _h_message,
+    EditMessageText: _h_edit,
+    EditMessageCaption: _h_edit,
+    EditMessageReplyMarkup: _h_edit,
     GetMe: _h_get_me,
     GetFile: _h_get_file,
     SendMediaGroup: _h_media_group,
