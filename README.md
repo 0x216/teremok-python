@@ -111,6 +111,69 @@ validation never consumes a queued result.
 Full rule-by-rule reference, including what's deliberately not enforced, in
 [docs/validation.md](docs/validation.md).
 
+## Callback-answer discipline (v0.3.0)
+
+Real Telegram shows an **endless loading spinner** on an inline button whose
+callback query the bot never answers, and returns a 400 if you answer the same
+query twice. MockBot auto-acks every callback with no once-tracking, so both
+bugs sail through a green test. Opt in with one flag:
+
+```python
+bot = mock_bot(router, strict_answer=True)
+
+# A handler that edits the screen but forgets callback.answer() now FAILS the
+# step with CallbackNotAnswered - the eternal-spinner bug, caught in the test.
+await bot.dispatch(MockCallbackQuery(data="open_menu"))
+
+# Answering twice raises the same TelegramBadRequest the live API does.
+```
+
+Or assert a single step without making the whole session strict:
+
+```python
+result = await bot.dispatch(MockCallbackQuery(data="open_menu"))
+result.assert_answered()          # fails unless the handler answered
+assert result.answered            # also exposed as a bool
+```
+
+`strict_answer` is **opt-in** (default off) so existing suites that dispatch
+un-answered callbacks stay green; turn it on to catch the class.
+
+## Message-id, edits, and stale menus (v0.3.0)
+
+An edit **keeps** its `message_id` (like Telegram), a fresh send gets a new one,
+and every message the bot sends or edits is recorded in order:
+
+```python
+await bot.dispatch(MockMessageText("/menu"))
+menu = bot.sent_messages[-1]              # the message the buttons are on
+
+# Tap on the current screen -> the bot moves on to a new message (new id):
+await bot.dispatch(MockCallbackQuery(data="nav", message=menu))
+
+# Tap a button on the NOW-STALE earlier message -> the handler's
+# "screen out of date" branch, unreachable with a fresh-every-time carrier:
+await bot.dispatch(MockCallbackQuery(data="nav", message=menu))
+```
+
+## Redis-backed FSM storage for tests (v0.3.0)
+
+`MemoryStorage` keeps FSM data as live Python objects, so a handler can stash a
+value production's `RedisStorage` would refuse to JSON-serialize and the test
+still passes. `fake_redis_storage()` runs a real aiogram `RedisStorage` over an
+in-process [fakeredis](https://github.com/cunla/fakeredis-py) - same
+serialization and key builder as prod, no server:
+
+```
+pip install teremok[redis]
+```
+
+```python
+from teremok import fake_redis_storage
+
+bot = mock_bot(router, storage=fake_redis_storage())
+```
+
 ## What's covered
 
 Every Bot API method is **captured** (interception happens below all methods, at

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "teremok"
-version = "0.2.0"
+version = "0.3.0"
 description = "Black-box testing for aiogram 3.x Telegram bots - no network, no token"
 readme = "README.md"
 license = { text = "MIT" }
@@ -31,6 +31,13 @@ Issues = "https://github.com/0x216/teremok-python/issues"
 Coverage = "https://github.com/0x216/teremok-python/blob/main/docs/coverage.md"
 
 [project.optional-dependencies]
+# Redis-backed FSM storage for tests (aiogram RedisStorage over an in-process
+# fakeredis) - JSON-serializes state/data like prod, so it surfaces bugs
+# MemoryStorage hides. See teremok.fake_redis_storage().
+redis = [
+  "fakeredis>=2.20",
+  "redis>=5",
+]
 dev = [
   "pytest>=8",
   "pytest-asyncio>=0.23",
@@ -39,6 +46,8 @@ dev = [
   "babel>=2.13",
   "ruff>=0.5",
   "mypy>=1.10",
+  "fakeredis>=2.20",
+  "redis>=5",
 ]
 
 [project.entry-points.pytest11]

@@ -7,13 +7,18 @@ import aiogram.methods as _methods_module
 from aiogram import Bot, Dispatcher, Router
 from aiogram.dispatcher.event.bases import UNHANDLED
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.base import StorageKey
-from aiogram.methods import TelegramMethod
+from aiogram.fsm.storage.base import BaseStorage, StorageKey
+from aiogram.methods import AnswerCallbackQuery, TelegramMethod
 from aiogram.methods.base import Response
 from aiogram.types import CallbackQuery, Message, Update, User
 
 from .builders import DEFAULT_USER_ID, next_update_id
 from .session import MockedSession
+
+
+class CallbackNotAnswered(AssertionError):
+    """Raised in strict-answer mode when a handled callback_query is never
+    answered (the user would see an endless loading spinner on the button)."""
 
 
 class Requests:
@@ -45,6 +50,29 @@ class DispatchResult:
     handled: bool
     requests: Requests
     result: Any
+    # Set when the dispatched update carried a callback_query: its id, and
+    # whether the handler answered it (called callback.answer()) during this
+    # dispatch. `answered` stays False for non-callback updates.
+    callback_query_id: str | None = None
+    answered: bool = False
+
+    def assert_answered(self) -> None:
+        """Fail unless this dispatch's callback_query was answered.
+
+        Usable regardless of strict_answer, so a single step can be asserted
+        without making the whole session strict. A no-op-worthy dispatch that
+        carried no callback_query is a usage error and also fails.
+        """
+        if self.callback_query_id is None:
+            raise AssertionError(
+                "assert_answered() only applies to a dispatched callback_query"
+            )
+        if not self.answered:
+            raise AssertionError(
+                f"callback_query {self.callback_query_id!r} was handled but never "
+                "answered (callback.answer() was not called) - in production the "
+                "user would see an endless loading spinner on the tapped button"
+            )
 
 
 def _as_update(obj: Update | Message | CallbackQuery) -> Update:
@@ -68,21 +96,42 @@ class MockBot(Bot):
         token: str = "42:TEST",
         strict: bool = False,
         validate: bool = True,
+        strict_answer: bool = False,
+        storage: BaseStorage | None = None,
         **bot_kwargs: Any,
     ) -> None:
-        session = MockedSession(strict=strict, validate=validate)
+        session = MockedSession(strict=strict, validate=validate, strict_answer=strict_answer)
         super().__init__(token, session=session, **bot_kwargs)
         self.mock_session: MockedSession = session
         self._me = User(id=self.id, is_bot=True, first_name="TestBot", username="test_bot")
         if len(targets) == 1 and isinstance(targets[0], Dispatcher):
+            if storage is not None:
+                raise TypeError(
+                    "storage= applies only when passing Routers; a Dispatcher already "
+                    "owns its storage"
+                )
             self.dp: Dispatcher = targets[0]
         else:
-            self.dp = Dispatcher()
+            self.dp = Dispatcher(storage=storage) if storage is not None else Dispatcher()
             for target in targets:
                 if isinstance(target, Dispatcher):
                     raise TypeError("Pass either one Dispatcher or any number of Routers")
                 self.dp.include_router(target)
         self.last: DispatchResult | None = None
+
+    @property
+    def sent_messages(self) -> list[Message]:
+        """Every Message this bot sent or edited, in call order - the on-screen
+        history. An edit keeps its message_id, so re-editing appends another
+        entry with the same id. Tap a button on an EARLIER entry to exercise a
+        handler's stale-message ("screen out of date") branch."""
+        return self.mock_session.sent_messages
+
+    @property
+    def last_message(self) -> Message | None:
+        """The most recently sent/edited Message, or None if none yet."""
+        msgs = self.mock_session.sent_messages
+        return msgs[-1] if msgs else None
 
     @property
     def requests(self) -> Requests:
@@ -96,12 +145,32 @@ class MockBot(Bot):
         self, obj: Update | Message | CallbackQuery, **kwargs: Any
     ) -> DispatchResult:
         update = _as_update(obj)
+        cq_id = update.callback_query.id if update.callback_query is not None else None
         start = len(self.mock_session.requests)
         result = await self.dp.feed_update(self, update, **kwargs)
         captured = self.mock_session.requests[start:]
-        self.last = DispatchResult(
-            handled=result is not UNHANDLED, requests=Requests(captured), result=result
+        handled = result is not UNHANDLED
+        answered = cq_id is not None and any(
+            isinstance(m, AnswerCallbackQuery) and m.callback_query_id == cq_id
+            for m in captured
         )
+        self.last = DispatchResult(
+            handled=handled,
+            requests=Requests(captured),
+            result=result,
+            callback_query_id=cq_id,
+            answered=answered,
+        )
+        # strict-answer: a handled callback the handler returned from without
+        # answering is the eternal-spinner bug - fail the step, like production.
+        if self.mock_session.strict_answer and cq_id is not None and handled and not answered:
+            raise CallbackNotAnswered(
+                f"callback_query {cq_id!r} was handled but never answered "
+                "(callback.answer() was not called) - in production the user would "
+                "see an endless loading spinner on the tapped button. Answer it in "
+                "the handler, or dispatch with strict_answer=False if this step "
+                "intentionally leaves it open."
+            )
         return self.last
 
     def add_result(

@@ -7,8 +7,9 @@ from typing import Any, cast
 
 from aiogram import Bot
 from aiogram.client.session.base import BaseSession
-from aiogram.methods import TelegramMethod
+from aiogram.methods import AnswerCallbackQuery, TelegramMethod
 from aiogram.methods.base import Response, TelegramType
+from aiogram.types import Message
 
 from .responses import AutoResponder
 from .validation import ApiRuleViolation, validate_method
@@ -24,14 +25,37 @@ class MockedSession(BaseSession):
     Captures every outgoing API call as a typed TelegramMethod object and
     answers it from that method's queued-results FIFO, falling back to the
     auto-responder (unless strict=True).
+
+    ``strict_answer`` turns on callback-answer discipline, modelling two real
+    Bot API behaviours that MockedSession otherwise papers over:
+
+    * a callback query answered **twice** gets the same 400 the live API
+      returns ("query is too old ... or query ID is invalid"), and
+    * :class:`~teremok.bot.MockBot` fails a dispatched callback that the
+      handler returned from **without** answering - the eternal-spinner bug
+      the user sees but a green mock never does.
+
+    Which callback ids were answered is always recorded (see
+    :attr:`answered_callbacks`); ``strict_answer`` only decides whether the
+    duplicate-answer *error* is raised, so :meth:`assert_answered`-style checks
+    work with the flag off too.
     """
 
-    def __init__(self, strict: bool = False, validate: bool = True) -> None:
+    def __init__(
+        self, strict: bool = False, validate: bool = True, strict_answer: bool = False
+    ) -> None:
         super().__init__()
         self.strict = strict
         self.validate = validate
+        self.strict_answer = strict_answer
         self.requests: list[TelegramMethod[Any]] = []
         self.files: dict[str, tuple[str, bytes]] = {}
+        # Every callback_query_id the bot has answered, across the session's
+        # lifetime (a query id stays answered forever, exactly like Telegram).
+        self.answered_callbacks: set[str] = set()
+        # Every Message the bot sent or edited, in call order - the on-screen
+        # history a stale-menu test taps against (see MockBot.sent_messages).
+        self.sent_messages: list[Message] = []
         self._results: dict[type[TelegramMethod[Any]], deque[Response[Any]]] = {}
         self.auto: AutoResponder = AutoResponder()
 
@@ -40,6 +64,21 @@ class MockedSession(BaseSession):
 
     async def close(self) -> None:
         pass
+
+    def _raise_bad_request(
+        self, bot: Bot, method: TelegramMethod[Any], description: str
+    ) -> None:
+        """Route a synthetic 400 through check_response so the caller sees a
+        genuine TelegramBadRequest - the same path a real error response takes."""
+        self.check_response(
+            bot=bot,
+            method=method,
+            status_code=400,
+            content=json.dumps(
+                {"ok": False, "error_code": 400, "description": description}
+            ),
+        )
+        raise RuntimeError("check_response must raise for error responses")
 
     async def make_request(
         self,
@@ -52,19 +91,17 @@ class MockedSession(BaseSession):
             try:
                 validate_method(bot, method)
             except ApiRuleViolation as violation:
-                self.check_response(
-                    bot=bot,
-                    method=method,
-                    status_code=400,
-                    content=json.dumps(
-                        {
-                            "ok": False,
-                            "error_code": 400,
-                            "description": violation.description,
-                        }
-                    ),
+                self._raise_bad_request(bot, method, violation.description)
+        if isinstance(method, AnswerCallbackQuery):
+            cq_id = method.callback_query_id
+            if self.strict_answer and cq_id in self.answered_callbacks:
+                self._raise_bad_request(
+                    bot,
+                    method,
+                    "Bad Request: query is too old and response timeout expired "
+                    "or query ID is invalid",
                 )
-                raise RuntimeError("check_response must raise for error responses") from None
+            self.answered_callbacks.add(cq_id)
         queue = self._results.get(type(method))
         if queue:
             response = queue.popleft()
@@ -86,6 +123,8 @@ class MockedSession(BaseSession):
             status_code=response.error_code or (200 if response.ok else 400),
             content=response.model_dump_json(),
         )
+        if isinstance(checked.result, Message):
+            self.sent_messages.append(checked.result)
         return cast(TelegramType, checked.result)
 
     async def stream_content(
